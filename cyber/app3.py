@@ -41,25 +41,6 @@ st.set_page_config(
 DB_PATH = "knowledge_base.db"
 
 
-@st.cache_resource
-def load_knowledge_base_json(path: str):
-    """Load knowledge base JSON file with caching"""
-    try:
-        json_path = Path(path)
-        if not json_path.exists():
-            st.warning(f"⚠️ Knowledge base JSON file not found at {json_path.absolute()}")
-            return {}
-
-        with open(json_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-
-        st.success(f"✅ Knowledge base loaded with {len(data)} entries")
-        return data
-    except Exception as e:
-        st.error(f"❌ Error loading knowledge base JSON: {e}")
-        return {}
-
-
 def init_database():
     """Initialize SQLite database for knowledge base"""
     conn = sqlite3.connect(DB_PATH)
@@ -1042,6 +1023,22 @@ def main():
     st.title("🔒 Cybersecurity Report Generator")
     st.markdown("Generate professional cybersecurity assessment reports - No technical knowledge required!")
 
+     # New Report button at the top
+    if st.button("🆕 New Report", type="secondary", help="Reset all inputs and start a new report"):
+        # Clear all session state
+        st.session_state.ip_inventory = [{'ip': '', 'host': ''}]
+        st.session_state.findings = []
+        st.session_state.images = {}
+        st.session_state.arch_image = None
+        st.session_state.mobile_arch_image = None
+        st.session_state.logo_image = None
+        st.session_state.file_processed = False
+        st.session_state.scroll_position = 0
+        if 'new_finding_idx' in st.session_state:
+            del st.session_state['new_finding_idx']
+        st.success("✅ All inputs cleared! Ready for a new report.")
+        st.rerun()
+
     # Add JavaScript to handle scroll position after new finding is added
     if 'new_finding_idx' in st.session_state:
         new_idx = st.session_state['new_finding_idx']
@@ -1629,3 +1626,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
