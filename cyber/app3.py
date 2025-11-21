@@ -25,6 +25,7 @@ import hashlib
 
 try:
     import PyPDF2
+
     PDF_AVAILABLE = True
 except ImportError:
     PDF_AVAILABLE = False
@@ -38,6 +39,25 @@ st.set_page_config(
 
 # Database Management
 DB_PATH = "knowledge_base.db"
+
+
+@st.cache_resource
+def load_knowledge_base_json(path: str):
+    """Load knowledge base JSON file with caching"""
+    try:
+        json_path = Path(path)
+        if not json_path.exists():
+            st.warning(f"⚠️ Knowledge base JSON file not found at {json_path.absolute()}")
+            return {}
+
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        st.success(f"✅ Knowledge base loaded with {len(data)} entries")
+        return data
+    except Exception as e:
+        st.error(f"❌ Error loading knowledge base JSON: {e}")
+        return {}
 
 
 def init_database():
@@ -67,38 +87,32 @@ def init_database():
     count = cursor.fetchone()[0]
 
     if count == 0:
-        json_path = Path('knowledge_base.json')
+        # Use cached JSON loading
+        kb_data = load_knowledge_base_json('knowledge_base.json')
 
-        if json_path.exists():
-            try:
-                with open(json_path, 'r', encoding='utf-8') as f:
-                    kb_data = json.load(f)
+        if kb_data:
+            imported = 0
+            for issue_name, details in kb_data.items():
+                if isinstance(details, dict):
+                    implication = details.get('implication', '')
+                    mitigation = details.get('mitigation', '')
+                    if implication and mitigation:
+                        cursor.execute('''
+                            INSERT OR IGNORE INTO knowledge_base (issue_name, implication, mitigation)
+                            VALUES (?, ?, ?)
+                        ''', (issue_name, implication, mitigation))
+                        imported += 1
 
-                imported = 0
-                for issue_name, details in kb_data.items():
-                    if isinstance(details, dict):
-                        implication = details.get('implication', '')
-                        mitigation = details.get('mitigation', '')
-                        if implication and mitigation:
-                            cursor.execute('''
-                                INSERT OR IGNORE INTO knowledge_base (issue_name, implication, mitigation)
-                                VALUES (?, ?, ?)
-                            ''', (issue_name, implication, mitigation))
-                            imported += 1
-
-                conn.commit()
-                print(f"✅ Imported {imported} entries from knowledge_base.json")
-
-            except Exception as e:
-                print(f"⚠️ Could not load knowledge_base.json: {e}")
+            conn.commit()
+            st.success(f"✅ Imported {imported} entries from knowledge_base.json")
         else:
-            print(f"⚠️ knowledge_base.json not found at {json_path.absolute()}")
+            st.info("ℹ️ No knowledge base data to import")
 
     conn.close()
 
-
+@st.cache_data(ttl=3600)  # Cache for 1 hour, refresh if needed
 def load_kb_from_db():
-    """Load all KB entries from database"""
+    """Load all KB entries from database with caching"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('SELECT issue_name, implication, mitigation FROM knowledge_base ORDER BY usage_count DESC')
@@ -112,7 +126,6 @@ def load_kb_from_db():
             'mitigation': row[2]
         }
     return kb
-
 
 def add_to_kb_db(issue_name, implication, mitigation):
     """Add or update entry in database"""
@@ -459,10 +472,10 @@ def create_cover_page(doc: Document, app_name: str, version: str, author: str = 
     sectPr.append(pgSz)
 
     pgMar = OxmlElement('w:pgMar')
-    pgMar.set(qn('w:top'), '1080')     # 0.75 inch = 1080 twips
-    pgMar.set(qn('w:right'), '1080')   # 0.75 inch
+    pgMar.set(qn('w:top'), '1080')  # 0.75 inch = 1080 twips
+    pgMar.set(qn('w:right'), '1080')  # 0.75 inch
     pgMar.set(qn('w:bottom'), '1080')  # 0.75 inch
-    pgMar.set(qn('w:left'), '1080')    # 0.75 inch
+    pgMar.set(qn('w:left'), '1080')  # 0.75 inch
     pgMar.set(qn('w:header'), '720')
     pgMar.set(qn('w:footer'), '720')
     pgMar.set(qn('w:gutter'), '0')
@@ -682,7 +695,8 @@ def add_assessment_summary(doc: Document, app_name: str, system_arch_image: byte
     run_summary_title.font.size = Pt(12)
 
     p_summary = doc.add_paragraph()
-    p_summary.add_run(f'We performed a security assessment for {app_name} as detailed in the scope below. The security audit consisted of the following components:')
+    p_summary.add_run(
+        f'We performed a security assessment for {app_name} as detailed in the scope below. The security audit consisted of the following components:')
 
     # Add bulleted list with tick marks (✓)
     p_bullet1 = doc.add_paragraph()
@@ -750,19 +764,42 @@ def add_ip_inventory_table(doc: Document, ip_inventory: list):
 def add_findings_master_table(doc: Document, findings: list):
     """Add findings master list table grouped by classification"""
     doc.add_heading('Findings Master List', level=2)
-    table = doc.add_table(rows=1, cols=4)
+    # Start with 5 columns for the main table structure
+    table = doc.add_table(rows=1, cols=5)
     table.style = 'Table Grid'
+
+    # Header row - merge cells to show only 4 visible columns
     hdr = table.rows[0].cells
-    hdr[0].text = 'Finding Number'
-    hdr[1].text = 'Issue Description'
-    hdr[2].text = 'Severity Level'
-    hdr[3].text = 'Responsible Party'
+    hdr[0].text = 'No.'
+    hdr[1].text = 'Issue'
+
+    # Merge severity and status cells for header to show as one column
+    hdr[2].merge(hdr[3])
+    hdr[2].text = 'Severity'  # This spans 2 columns but appears as one
+
+    hdr[4].text = 'Responsibility'
+
+    #table.autofit = False
+    #table.allow_autofit = False  # depending on python-docx version
 
     # Make header row bold
-    for cell in hdr:
+    for cell in [hdr[0], hdr[1], hdr[2], hdr[4]]:  # Skip the merged cell that doesn't exist
         for paragraph in cell.paragraphs:
             for run in paragraph.runs:
                 run.font.bold = True
+
+            # Set column widths in centimeters (converted to inches)
+            # 1 cm = 0.3937 inches
+    for cell in table.columns[0].cells:
+        cell.width = Inches(1.5 * 0.3937)  # 1.5 cm - No. column
+    for cell in table.columns[1].cells:
+        cell.width = Inches(12.0 * 0.3937)  # 12.0 cm - Issue column (widest)
+    for cell in table.columns[2].cells:
+        cell.width = Inches(3.0 * 0.3937)  # 3.0 cm - Severity Level part
+    for cell in table.columns[3].cells:
+        cell.width = Inches(3.0 * 0.3937)  # 3.0 cm - Status part
+    for cell in table.columns[4].cells:
+        cell.width = Inches(3.0 * 0.3937)  # 3.0 cm - Responsibility
 
     # Group findings by classification
     classifications = ['Mobile Application Vulnerability', 'Server Vulnerabilities', 'Web Vulnerabilities']
@@ -772,28 +809,40 @@ def add_findings_master_table(doc: Document, findings: list):
         classified_findings = [f for f in findings if f.get('classification') == classification]
 
         if classified_findings:
-            # Add classification header row
+            # Add classification header row - spans all 5 columns
             row = table.add_row().cells
-            row[0].text = ''
-            row[1].text = classification
-            row[2].text = ''
-            row[3].text = ''
+            row[0].merge(row[1]).merge(row[2]).merge(row[3]).merge(row[4])
+            row[0].text = classification
 
             # Make classification row bold
-            for paragraph in row[1].paragraphs:
+            for paragraph in row[0].paragraphs:
                 for run in paragraph.runs:
                     run.font.bold = True
 
-            # Add findings for this classification
+            # Add findings for this classification - each has 5 separate columns
             for f in classified_findings:
                 row = table.add_row().cells
                 row[0].text = f.get('number', '')
                 row[1].text = f.get('issue', '')
-                row[2].text = f.get('severity', '')
-                row[3].text = f.get('responsible_party', '')
+
+                # Split severity into level and status in separate columns
+                severity_level = f.get('severity_level', 'Medium')
+                severity_status = f.get('severity_status', 'Open')
+
+                row[2].text = severity_level  # Severity Level
+                row[3].text = severity_status  # Status
+
+                # Apply background color based on status to the status column only
+                status_shading = OxmlElement('w:shd')
+                if severity_status.lower() == 'open':
+                    status_shading.set(qn('w:fill'), 'FF0000')  # Red
+                elif severity_status.lower() == 'closed':
+                    status_shading.set(qn('w:fill'), '00FF00')  # Green
+                row[3]._element.get_or_add_tcPr().append(status_shading)
+
+                row[4].text = f.get('responsible_party', '')
 
     doc.add_page_break()
-
 
 def resize_image_for_table(img_bytes, max_width=1200):
     """Resize image to fit nicely in table cell while maintaining aspect ratio"""
@@ -820,10 +869,10 @@ def resize_image_for_table(img_bytes, max_width=1200):
         return img_bytes
 
 
-def set_column_width(column, width_inches):
-    """Set column width in inches"""
+def set_column_width(column, width_cm):
+    """Set column width in cm (converted to inches)"""
     for cell in column.cells:
-        cell.width = Inches(width_inches)
+        cell.width = Inches(width_cm / 2.54)
 
 
 def generate_finding_pages(doc: Document, findings: list, ip_inventory: list, uploaded_images: dict):
@@ -849,8 +898,9 @@ def generate_finding_pages(doc: Document, findings: list, ip_inventory: list, up
         table = doc.add_table(rows=7, cols=2)
         table.style = 'Table Grid'
 
-        set_column_width(table.columns[0], 2.15)
-        set_column_width(table.columns[1], 4.35)
+        # Set column widths: 2.11 cm for first column, 18 cm for second column
+        set_column_width(table.columns[0], 2.11)
+        set_column_width(table.columns[1], 18)
 
         implication = custom_implication
         mitigation = custom_mitigation
@@ -890,6 +940,11 @@ def generate_finding_pages(doc: Document, findings: list, ip_inventory: list, up
 
         for i, (left, right) in enumerate(rows_data):
             table.cell(i, 0).text = left
+            # Add gray background to first column
+            shading_elm = OxmlElement('w:shd')
+            shading_elm.set(qn('w:fill'), 'D3D3D3')  # Gray background
+            table.cell(i, 0)._element.get_or_add_tcPr().append(shading_elm)
+
             if right is not None:
                 table.cell(i, 1).text = right
 
@@ -1048,7 +1103,8 @@ def main():
 
         # Mobile Application Architecture
         with st.expander("Mobile Application Architecture"):
-            mobile_arch_file = st.file_uploader("Upload mobile architecture diagram", type=['png', 'jpg', 'jpeg'], key='mobile_arch_upload')
+            mobile_arch_file = st.file_uploader("Upload mobile architecture diagram", type=['png', 'jpg', 'jpeg'],
+                                                key='mobile_arch_upload')
             if mobile_arch_file:
                 st.session_state.mobile_arch_image = mobile_arch_file.read()
                 st.success("✅ Mobile Architecture Uploaded")
@@ -1447,7 +1503,8 @@ def main():
                     'severity': combined_severity,
                     'responsible_party': responsible,
                     'implication': implication,
-                    'mitigation': mitigation
+                    'mitigation': mitigation,
+                    'affected_hosts': st.session_state.findings[idx].get('affected_hosts', [])
                 }
 
                 col_del1, col_del2 = st.columns([4, 1])
