@@ -1,0 +1,246 @@
+{
+  "Ensure the WebDAV Modules Are Disabled": {
+    "implication": "Disabling WebDAV modules will improve the security posture of the web server by reducing the amount of potentially vulnerable code paths exposed to the network and reducing potential for unauthorized access to files via misconfigured WebDAV access controls.",
+    "mitigation": "Perform either one of the following to disable WebDAV module:\nFor source builds with static modules run the Apache ./configure script without including the mod_dav, and mod_dav_fs in the --enable-modules=configure script options.\nFor dynamically loaded modules comment out or remove the LoadModule directive for mod_dav, and mod_dav_fs modules from the httpd.conf file."
+  },
+  "Ensure the Autoindex Module Is Disabled": {
+    "implication": "Automated directory listings should not be enabled as it will also reveal information helpful to an attacker such as naming conventions and directory paths. Directory listings may also reveal files that were not intended to be revealed.",
+    "mitigation": "Perform either one of the following to disable the mod_autoindex module:\nFor source builds with static modules, run the Apache ./configure script with the --disable-autoindex configure script options\nFor dynamically loaded modules, comment out or remove the LoadModule directive for mod_autoindex from the httpd.conf file."
+  },
+  "Ensure the User Directories Module Is Disabled": {
+    "implication": "The user directories should not be globally enabled since it allows anonymous access to anything users may want to share with other users on the network. Also consider that every time a new account is created on the system, there is potentially new content available via the web site.",
+    "mitigation": "Perform either one of the following to disable the user directories module:\nFor source builds with static modules, run the Apache ./configure script with the --disable-userdir configure script options.\nFor dynamically loaded modules, comment out or remove the LoadModule directive for mod_userdir module from the httpd.conf file."
+  },
+  "Ensure the Apache Web Server Runs As a Non-Root User": {
+    "implication": "One of the best ways to reduce your exposure to attack when running a web server is to create a unique, unprivileged user and group for the server application. The nobody or daemon user and group that comes default on Unix variants should NOT be used to run the web server, since the account is commonly used for other separate daemon services.\nInstead, an account used only by the apache software so as to not give unnecessary access to other services. Also, the identifier used for the apache user should be a unique system account. System user accounts UID numbers have lower values which are reserved for the special system accounts not used by regular users, such as discussed in User Accounts section of the CIS Red Hat benchmark. Typically, system accounts numbers range from 1-999, or 1-499 and are defined in the /etc/login.defs file.",
+    "mitigation": "Perform the following:\nIf the apache user and group do not already exist, create the account and group as a unique system account\nConfigure the Apache user and group in the Apache configuration file httpd.conf"
+  },
+  "Ensure the Apache User Account Is Locked": {
+    "implication": "As a defense-in-depth measure the Apache user account should be locked to prevent logins, and to prevent a user from su'ing to apache using the password. In general, there shouldn't be a need for anyone to have to su as apache, and when there is a need, then sudo should be used instead, which would not require the apache account password.",
+    "mitigation": "Use the passwd command to lock the apache account"
+  },
+  "Ensure Access to OS Root Directory Is Denied By Default": {
+    "implication": "One aspect of Apache, which is occasionally misunderstood, is the feature of default access. That is, unless you take steps to change it, if the server can find its way to a file through normal URL mapping rules, it can and will serve it to clients. Having a default deny is a predominate security principle, and then helps prevent the unintended access, and we do that in this case by denying access to the OS root directory using either of two methods but not both:\nUsing the Apache Deny directive along with an Order directive.\nUsing the Apache Require directive.",
+    "mitigation": "Perform the following to implement the recommended state:\nSearch the Apache configuration files (httpd.conf and any included configuration files) to find a root <Directory> element.\nAdd a single Require directive and set the value to all denied\nRemove any Deny and Allow directives from the root <Directory> element."
+  },
+  "Ensure Appropriate Access to Web Content Is Allowed": {
+    "implication": "One aspect of Apache, which is occasionally misunderstood, is the feature of default access. That is, unless you take steps to change it, if the server can find its way to a file through normal URL mapping rules, it can and will serve it to clients. Having a default deny is a predominate security principle, and then helps prevent the unintended access, and we do that in this case by denying access to the OS root directory using either of two methods but not both:\nUsing the Apache Deny directive along with an Order directive.\nUsing the Apache Require directive.",
+    "mitigation": "Perform the following to implement the recommended state:\nSearch the Apache configuration files (httpd.conf and any included configuration files) to find a root <Directory> element.\nAdd a single Require directive and set the value to all denied\nRemove any Deny and Allow directives from the root <Directory> element."
+  },
+  "Ensure Applicable Patches Are Applied": {
+    "implication": "Obviously knowing about newly discovered vulnerabilities is only part of the solution; there needs to be a process in place where patches are tested and installed. These patches fix diverse problems, including security issues. It is recommended to use the Apache packages and updates provided by the Linux platform vendor rather than building from source when possible, in order to minimize the disruption and the work of keeping the software up-to-date.",
+    "mitigation": "Update to the latest Apache release available according to either of the following:\n When building from source:\nRead release notes and related security patch information.\nDownload latest source and any dependent modules such as mod_security.\nBuild new Apache software according to your build process with the same configuration options.\nInstall and test the new software according to your organization's testing process.\nMove to production according to your organization's deployment process.\nWhen using platform packages:\nRead release notes and related security patch information\nDownload and install latest available Apache package and any dependent software.\nTest the new software according to your organization's testing process.\nMove to production according to your organization's deployment process."
+  },
+  "Ensure a Valid Trusted Certificate Is Installed": {
+    "implication": "A digital certificate on your server automatically communicates your site's authenticity to visitors' web browsers. If a trusted authority signs your certificate, it confirms for the visitor they are actually communicating with you, and not with a fraudulent site stealing credit card numbers or personal information.",
+    "mitigation": "Implement an SSL certificate and ensure the intermediate certificate is applied"
+  },
+  "Ensure the TLSv1.0 and TLSv1.1 Protocols are Disabled": {
+    "implication": "The TLSv1.0 protocol is vulnerable to the BEAST attack when used in CBC mode (October 2011). Unfortunately, the TLSv1.0 uses CBC modes for all of the block mode ciphers, which only leaves the RC4 streaming cipher which is also weak and is not recommended. Therefore, it is recommended that the TLSv1.0 protocol be disabled. The TLSv1.1 protocol does not support Authenticated Encryption with Associated Data (AEAD) which is designed to simultaneously provide confidentiality, integrity, and authenticity. All major up-to-date browsers support TLSv1.2, and most recent versions of FireFox and Chrome support the newer TLSv1.3 protocol, since 2017. The NIST SP 800-52r2 guidelines for TLS configuration require that TLS 1.2 is configured with FIPS-based cipher suites be supported by all government TLS servers and clients and requires support of TLS 1.3 by January 1, 2024. A September 2018 IETF draft also depreciates the usage of TLSv1.0 and TLSv1.1 as shown in the references.\nAs of March 2020 all major browsers are no longer support TLS 1.0 or TLS 1.1.",
+    "mitigation": "Perform the following to implement the recommended state:\nCheck if the TLSv1.3 protocol is supported by the Apache server by either checking that the version of OpenSSL is 1.1.1 or later or place the TLSv1.3 value in the SSLProtocol string of a configuration file and check the syntax with the ‘httpd -t’ command before using the file in production. Two examples below are shown of servers that do support the TLSv1.3 protocol.\nSearch the Apache configuration files for the SSLProtocol directive; add the directive, if not present, or change the value to TLSv1.2 or TLSv1.2 TLSv1.3 if the TLSv1.3 protocol is supported"
+  },
+  "Ensure All Web Content is Accessed via HTTPS": {
+    "implication": "The usage of clear text HTTP prevents the client browser from authenticating the connection and ensuring the integrity of the website information. Without the HTTPS authentication, a client may be subjected to a variety of man-in-the-middle and spoofing attacks which would cause them to receive modified web content which could harm the organization’s reputation. Through DNS attacks or malicious redirects, the client could arrive at a malicious website instead of the intended website. The malicious website could deliver malware, request credentials, or deliver false information.",
+    "mitigation": "Perform the following to implement the recommended state:\nMove the web content to a TLS enabled website, and add an HTTP Redirect directive to the Apache configuration file to redirect to the TLS enabled website"
+  },
+  "Ensure All Default Apache Content Is Removed": {
+    "implication": "To identify the type of web servers and versions software installed it is common for attackers to scan for icons or special content specific to the server type and version. A simple request may tell the attacker that the server is Apache 2.4. Many icons are used primarily for auto indexing, which is also recommended to be disabled.",
+    "mitigation": "Perform either of the following to implement the recommended state:\nThe default source build places the auto-index and icon configurations in the extra/httpd-autoindex.conf file, so it can be disabled by leaving the include line commented out in the main httpd.conf file"
+  },
+  "Ensure that NGINX is run using a non-privileged, dedicated service account": {
+    "implication": "Running a web server under a non-privileged, dedicated service account helps mitigate the risk of lateral movement to other services or processes in the event the user account running the web services is compromised. The default user nobody is typically used for several processes, and if this is compromised, it could allow an attacker to have access to all processes running as that user.",
+    "mitigation": "Add a system account for the nginx user with a home directory of /var/cache/nginx and a shell of /sbin/nologin so it does not have the ability to log in, then add the nginx user to be used by nginx:\n\nuser add nginx -r -g nginx -d /var/cache/nginx -s /sbin/nologin  \n\nThen add the nginx user to /etc/nginx/nginx.conf by adding the user directive:\n\nuser nginx;"
+  },
+  "Ensure the NGINX service account is locked": {
+    "implication": "As a defense-in-depth measure, the nginx user account should be locked to prevent logins and to prevent someone from switching users to nginx using the password. In general, there shouldn't be a need for anyone to have to su as nginx, and when there is a need, sudo should be used instead, which would not require the nginx account password.",
+    "mitigation": "Use the passwd command to lock the nginx service account:\n\npasswd -l nginx \n\nThis ensures the nginx user account may not be used by a human user."
+  },
+  "Ensure server_tokens directive is set to `off`": {
+    "implication": "Attackers can conduct reconnaissance on a website using these response headers, then target attacks for specific known vulnerabilities associated with the underlying technologies. Hiding the version will slow down and deter some potential attackers.",
+    "mitigation": "To disable the server_tokens directive, set it to off inside a server block in your nginx.conf"
+  },
+  "Ensure default error and index.html pages do not reference NGINX": {
+    "implication": "By gathering information about the server, attackers can target attacks against its known vulnerabilities. Removing pages that disclose the server runs NGINX helps reduce targeted attacks on the server.",
+    "mitigation": "Edit /usr/share/nginx/html/index.html and usr/share/nginx/html/50x.html and remove any lines that reference NGINX."
+  },
+  "Ensure X-Frame-Options header is configured and enabled": {
+    "implication": "The X-Frame-Options header allows you to mitigate the risk of clickjacking attacks.",
+    "mitigation": "Add the below to your server blocks in your nginx configuration. The policy should be configured to meet your organization's needs:\n\nadd_header X-Frame-Options \"SAMEORIGIN\";"
+  },
+  "Ensure X-Content-Type-Options header is configured and enabled": {
+    "implication": "Implementing the X-Content-Type-Options header with the \"nosniff\" directive helps to prevent drive-by download attacks where a user agent is sniffing content types in responses.",
+    "mitigation": "Open the nginx configuration file that contains your server blocks. Add the below line into your server block to add X-Content-Type-Options header and direct your user agent to not sniff content types:\n\nadd_header X-Content-Type-Options \"nosniff\";"
+  },
+  "Ensure the X-XSS-Protection Header is enabled and configured properly": {
+    "implication": "X-Xss-Protection allows you to protect users whose browsers do not support Content Security Policy (generally older browsers), or protect users if you do not have a Content Security Policy.",
+    "mitigation": "Open your nginx configuration file that contains your server blocks. Add the below line into your server block to add Content-Security-Policy and direct your user agent to block reflected cross-site scripting:\n\nadd_header X-Xss-Protection \"1; mode=block\";"
+  },
+  "Ensure that Content Security Policy (CSP) is enabled and configured properly": {
+    "implication": "Content Security Policies assist organizations in mitigating and reporting cross-site scripting (XSS) attacks.",
+    "mitigation": "Open your nginx configuration file that contains your server blocks. Add the below line into your server block to add Content-Security-Policy and direct your user agent to accept documents from only specific origins:\n\nadd_header Content-Security-Policy \"default-src 'self'\";"
+  },
+  "Ensure HTTP Strict Transport Security Is Enabled": {
+    "implication": "Usage of HTTP Strict Transport Security (HSTS) helps protect HSTS compliant browsers and other agents from HTTP downgrade attacks. Downgrade attacks include a variety of man-in-the-middle attacks which leave the web communication vulnerable to disclosure and modification by forcing the usage of HTTP rather than HTTPS communication.",
+    "mitigation": "Perform the following to implement the recommended state:\n\nAdd a Header directive as shown below in the Apache server level configuration and every virtual host that is SSL enabled. The includeSubDomains and preload flags may be included in the header, but are not required.\n\nStrict-Transport-Security: max-age=<expire-time>"
+  },
+  "“X-Powered-By” HTTP Response Header Field": {
+    "implication": "Prevent attackers identifying other frameworks/components and their vulnerabilities",
+    "mitigation": "Suppress “X-Powered-By” headers"
+  },
+  "No Captcha Engine": {
+    "implication": "The authentication interface does not provide any mechanism to block dictionary attacks such as Captchas.\nA malicious user can automate scripts to try and match combinations of usernames and passwords against a database of valid credentials.",
+    "mitigation": "It is recommended that a captcha engine for authentication module is implemented on all the authentication pages."
+  },
+  "Ensure Latest SQL Server Cumulative and Security Updates are Installed": {
+    "implication": "Using the most recent SQL Server software, along with all applicable patches can help limit the possibilities for vulnerabilities in the software. The installation version and/or patches applied during setup should be established according to the needs of the organization.",
+    "mitigation": "Identify the current version and patch level of your SQL Server instances and ensure they contain the latest security fixes. Make sure to test these fixes in your test environments before updating production instances."
+  },
+  "Ensure SQL Server is configured to use non-standard ports": {
+    "implication": "Using a non-default port helps protect the database from attacks directed to the default port.",
+    "mitigation": "In SQL Server Configuration Manager, in the console pane, expand SQL Server Network Configuration, expand Protocols for <InstanceName>, and then doubleclick the TCP/IP protocol\nIn the TCP/IP Properties dialog box, on the IP Addresses tab, several IP addresses appear in the format IP1, IP2, up to IPAll. One of these is for the IP address of the loopback adapter, 127.0.0.1. Additional IP addresses appear for each IP Address on the computer.\nUnder IPAll, change the TCP Port field from 1433 to a non-standard port or leave the TCP Port field empty and set the TCP Dynamic Ports value to 0 to enable dynamic port assignment and then click OK.\nIn the console pane, click SQL Server Services.\nIn the details pane, right-click SQL Server (<InstanceName>) and then click Restart, to stop and restart SQL Server."
+  },
+  "Ensure the 'sa' Login Account has been renamed": {
+    "implication": "It is more difficult to launch password-guessing and brute-force attacks against the sa login if the name is not known.",
+    "mitigation": "Replace the <different_user> value within the below syntax and execute to rename the ‘sa’ login:\n\nALTER LOGIN sa WITH NAME = <different_user>;"
+  },
+  "Ensure the SQL Server’s MSSQL Service Account is Not an Administrator": {
+    "implication": "Following the principle of least privilege, the service account should have no more privileges than required to do its job. For SQL Server services, the SQL Server Setup will assign the required permissions directly to the service SID. No additional permissions or privileges should be necessary.",
+    "mitigation": "In the case where LocalSystem is used, use SQL Server Configuration Manager to change to a less privileged account. Otherwise, remove the account or service SID from the Administrators group. You may need to run the SQL Server Configuration Manager if underlying permissions had been changed or if SQL Server Configuration Manager was not originally used to set the service account."
+  },
+  "Ensure there no weak Password Policy Settings": {
+    "implication": "With a short minimum password length configured a user could set a short password, requiring less time for an attacker to brute-force the authentication password.",
+    "mitigation": "We recommend that a baseline password policy settings as per Econet wireless Information Security Policy document be configured as follows:\n\nPass Max Days : 42\nPass Min Days: 5\nPassword Length:  8 characters"
+  },
+  "Ensure 'SEC_RETURN_SERVER_RELEASE_BANNER' Is Set to 'FALSE'": {
+    "implication": "Allowing the database to return information about the patch/update release number could facilitate unauthorized users' attempts to gain access based upon known patch weaknesses.",
+    "mitigation": "To remediate this setting, execute the following SQL statement:\n\nALTER SYSTEM SET SEC_RETURN_SERVER_RELEASE_BANNER = FALSE SCOPE = SPFILE;"
+  },
+  "Ensure All Default Passwords Are Changed": {
+    "implication": "Default passwords should be considered \"well known\" to attackers. Consequently, if default passwords remain in place, any attacker with access to the database can authenticate as the user with that default password.",
+    "mitigation": "Defaults users and passwords should be removed e.g. #pass123"
+  },
+  "Ensure All Sample Data And Users Have Been Removed": {
+    "implication": "The sample schemas are typically not required for production operations of the database. The default users, views, and/or procedures/functions created by sample schemas could be used to launch exploits against production environments.",
+    "mitigation": "To remediate this setting, execute the following SQL statement, keeping in mind if this is granted in both container and pluggable database, you must connect to both places to run the drop script:\n\n$ORACLE_HOME/demo/schema/drop_sch.sql\nDROP USER SCOTT CASCADE;"
+  },
+  "Ensure No Users Are Assigned the 'DEFAULT' Profile": {
+    "implication": "Users should be created with function-appropriate profiles. The DEFAULT profile, being defined by Oracle, is subject to change at any time (e.g. by patch or version update). The DEFAULT profile has unlimited settings that are often required by the SYS user when patching; such unlimited settings should be tightly reserved and not applied to unnecessary users.",
+    "mitigation": "To remediate this recommendation, execute the following SQL statement for each user returned by the audit query using a functional-appropriate profile, keeping in mind if this is granted in both container and pluggable database, you must connect to both places to revoke:\n\nALTER USER <username> PROFILE <appropriate_profile>;"
+  },
+  "Disable unused filesystems": {
+    "implication": "Removing support for unneeded filesystem types reduces the local attack surface of the system. If a filesystem type is not needed it should be disabled.",
+    "mitigation": "Ensure unused filesystems such as  squashfs and udfs mounting is disabled and automounting is disabled"
+  },
+  "Ensure package manager repositories are configured": {
+    "implication": "If a system's package repositories are misconfigured important patches may not be identified or a rogue repository could introduce compromised software.",
+    "mitigation": "Configure your package manager repositories according to site policy."
+  },
+  "Ensure authentication required for single user mode": {
+    "implication": "Requiring authentication in single user mode (rescue mode) prevents an unauthorized user from rebooting the system into single user to gain root privileges without credentials.",
+    "mitigation": "Edit /usr/lib/systemd/system/rescue.service and add/modify the following line: \nExecStart=-/usr/lib/systemd/systemd-sulogin-shell rescue\nEdit /usr/lib/systemd/system/emergency.service and add/modify the following line: \nExecStart=-/usr/lib/systemd/systemd-sulogin-shell emergency"
+  },
+  "Ensure updates, patches, and additional security software are installed": {
+    "implication": "Newer patches may contain security enhancements that would not be available through the latest full update. As a result, it is recommended that the latest software patches be used to take advantage of the latest functionality. As with any software installation, organizations need to determine if a given update meets their requirements and verify the compatibility and supportability of any additional software against the update revision that is selected.",
+    "mitigation": "Use your package manager to update all packages on the system according to site policy. The following command will install all available updates: \n# zypper update"
+  },
+  "Ensure DHCP and DNS Servers are not installed": {
+    "implication": "Unless a system is specifically set up to act as a DHCP or DNS server, it is recommended that the packages be removed to reduce the potential attack surface.",
+    "mitigation": "Run the following command to remove dhcp or dns:\n\n# zypper remove dhcp\n# zypper remove bind"
+  },
+  "Ensure HTTP and FTP server are not installed": {
+    "implication": "Unless there is a need to run the system as a web server, it is recommended that the package be removed to reduce the potential attack surface. FTP does not protect the confidentiality of data or authentication credentials. It is recommended SFTP be used if file transfer is required. Unless there is a need to run the system as a FTP server (for example, to allow anonymous downloads), it is recommended that the package be removed to reduce the potential attack surface.",
+    "mitigation": "Run the following command to remove apache2 or vsftpd:\n\n# zypper remove apache2\n# zypper remove vsftpd"
+  },
+  "Ensure telnet-server is not installed": {
+    "implication": "The telnet protocol is insecure and unencrypted. The use of an unencrypted transmission medium could allow a user with access to sniff network traffic the ability to steal credentials. The ssh package provides an encrypted session and stronger security.",
+    "mitigation": "Run the following command to remove the telnet-server package:\n\n# zypper remove telnet"
+  },
+  "Identify and protect sensitive data on the mobile device": {
+    "implication": "Mobile devices due to their portable nature have a higher risk of loss or theft. Mobile applications need to take this into account and need to add the possibility of device loss into their security model. Mobile applications need to protect the data associated with the application. Specifically, sensitive data such as user personal data and business critical data has to be protected.",
+    "mitigation": "When storing sensitive data on the device, use a file encryption API provided by the OS or other trusted source. \nDo not store/cache sensitive data (including keys) unless they are encrypted and if possible stored in a platform supported tamper-proof area.\nFor sensitive personal data, deletion should be scheduled according to a maximum retention period, (to prevent e.g. data remaining in caches indefinitely).\nEnsure that during application removal (uninstall operation), any confidential user data and the corresponding app-specific credentials are deleted from the execution environment, the device, and any other storage medium.\nRestrict the data that is shared with other applications (e.g., by implementing an Android Content Provider). \nDisable Auto Correction and Autosuggestion for inputs that contain sensitive data.\nDisable cut, copy and paste functionalities for inputs that may contain sensitive data or restrict the pasteboard to be accessible only from this application.\nExclude sensitive application files from device backups and cloud synchronization services. If this option is not available in the in use platform (e.g., Android), exclude the whole application from device backups."
+  },
+  "Implement user authentication, authorization and session management correctly": {
+    "implication": "Unauthorized individuals may obtain access to sensitive data or sensitive systems by circumventing authentication (logins) or by reusing valid tokens or cookies. Mobile applications must implement secure session management to prevent unauthorized access to the application and its data.",
+    "mitigation": "If a password based authentication mechanism is used, ensure that a strong a password policy is being followed.\nDo not reveal registered usernames and remove any fingerprint of their existence from verbose error messages.\nIntroduce a bruteforce protection mechanism for the authentication controls (account lockout for a specific duration, extended questions, completely automated public Turing tests (captcha) in case of multiple failed attempts.\nApps that support user authentication must have a logout function which terminates the authenticated session. Upon logout, session should also be invalidated on the server side.\nFor applications that contain sensitive data, is also recommended to request for user re-authentication when the application state changes to background or verify that the device is secured with PIN, pattern or password."
+  },
+  "Handle authentication and authorization factors securely on the device": {
+    "implication": "User account credentials, if stolen, not only provide unauthorized access to the mobile backend service but potentially to other services and accounts owned by the user.",
+    "mitigation": "In the case passwords need to be stored on the device, leverage the encryption and key-store mechanisms provided by the mobile OS to securely store passwords, password equivalents and authorization tokens. Never store passwords in clear text. Do not store passwords or long term session IDs without appropriate encryption.\nIf the credentials or keys appear in the user interface (UI) components, try to release the UI frames immediately after use.\nProvide the ability to the mobile user to change passwords or other authentication tokens.\nEnsure passwords and keys are not visible in cache or logs.\nDo not store any passwords or secrets in the application binary. Do not use a generic shared secret for integration with the backend server (like password embedded in code). Mobile application binaries can be easily downloaded and reverse engineered."
+  },
+  "Ensure sensitive data is protected in transit": {
+    "implication": "Network-based attacks are one of the major threats to smartphone applications, especially since the majority of smartphones contain multiple different networking technologies.",
+    "mitigation": "For sensitive data, to reduce the risk of man-in-middle attacks (like SSL proxy, SSL strip), a secure connection should only be established after verifying the identity of the remote-end-point (server). This can be achieved by ensuring that TLS is only established with end-points having the trusted certificates in the key chain.\nUse certificates signed by trusted CA providers. Do not allow self-signed certificates and do not disable or ignore certificate chain validation.\nIntroduce certificate pinning: Implement ‘HttpsURLConnection’ to only trust a certain set of CAs. Restrict an application’s trusted certificates to a small set of known certificates that are used by the backend servers.\nEnsure adequate logs on the server are retained about established connections. In the case of multiple intermediate proxies, make sure that HTTP headers are parsed correctly (e.g., X-Forwarded-For)."
+  },
+  "Secure the backend services and the platform server and APIs": {
+    "implication": "Insecure implementation of backend APIs, services, and not keeping the back-end platform hardened/patched will allow attackers to compromise data on the mobile device when transferred to the back-end, or to attack the backend through the mobile application.",
+    "mitigation": "Carry out a specific check of your code for sensitive data unintentionally transferred between the mobile device and web-server back-ends and other external interfaces\nEnsure that the back-end platform (server) is running with a hardened configuration with the latest security patches applied to the OS, web server and other application components.\nProtect the back-end from client initiated log injections that may corrupt or forge the history of events.\nEmploy rate limiting and throttling on a per-user/IP basis (if user identification is available) to reduce the risk from denial of service (DoS) attack."
+  },
+  "Secure data integration with third party code": {
+    "implication": "Third party code can introduce security vulnerabilities into an otherwise secure application.",
+    "mitigation": "Vet the security/authenticity of third party code/libraries used in the mobile application. Ensure that third party code is only taken from a reliable source that maintains their code.\nAudit code for security issues.\nAudit the library and inspect any transmitted data to third-party services for privacy issues (e.g., analytics or ad libraries).\nTrack third party frameworks/APIs used in the mobile application for security patches. Integrate security updates for third party code/libraries/frameworks/APIs on a regular basis together with your own code. Ask the provider for a security report.\nPay attention to validate all data received from third parties before processing them within your application. This includes local applications, OS services as well as data received over the network.\nAvoid using third-party libraries that contain main processor-only cryptographic implementations. Prefer using cryptographic framework provided by a platform supported secure hardware (e.g. TEE, SE). \nSoftware components that are no longer supported by the vendor or developer must not be used"
+  },
+  "Consent and privacy protection": {
+    "implication": "Use privacy enhancing technologies, that support data minimization, anonymization and security of personal data so the data is not used by attackers for Ransomware",
+    "mitigation": "Prior to using personal data consent should be obtained. When obtaining consent, explicitly notify the user with specific information such as:\nwhat exactly personal data will be used;\n what is the purpose of the processing;\nwho are the recipients of the data;\nwhere is the data stored and for how long.\nIn case that the user does not grant consent to all requested data, he/she should be informed about possible limitations of the app’s functionality and it should be possible for the user to withdraw consent at any time in the application. \nThe default settings of the application should provide maximum privacy and security protection for the user."
+  },
+  "Secure software distribution": {
+    "implication": "Distributing apps through official app-stores provides a safety-net in case of serious vulnerabilities in your app.",
+    "mitigation": "Applications must be designed and provisioned to allow updates for security patches, taking into account the requirements for approval by app-stores and the extra delay this may imply.\nResources used by apps that are updated outside of the app-store normal mechanism must be signed. Apps must verify the signature before accepting the updated resource.\nDo not deploy apps with ad-hoc signing certificates used for development and testing.\nDo not generate one application for multiple environments. The production app must not contain log calls, developer URLs, test methods, and settings of the development or the testing environment."
+  },
+  "Handle runtime code interpretation correctly": {
+    "implication": "Runtime interpretation of code and careless treatment of information flow may give an opportunity for untrusted parties to provide unverified input which is interpreted as code or to leak sensitive information. This gives an opportunity for malware to circumvent walled garden controls provided by app-stores. It can lead to injection attacks leading to data leakage, surveillance and, spyware.\nLack of control on the information flow can lead to data leakage in the presence of a physical attacker.",
+    "mitigation": "Filter user data passed to interpreters.\nDo not reveal sensitive information such as usernames, personal data and others through error messages.\nDeny interpreted code direct access to user data and encrypted storage.\nStrip unused functionalities from interpreters and limit size of input data passed to interpreters."
+  },
+  "Splunk monitoring not implemented": {
+    "implication": "Without Splunk monitoring system implemented , the security team will not be able to identify threats to the servers in real time",
+    "mitigation": "Security team to install Splunk monitoring agents on the servers"
+  },
+  "Audit trail": {
+    "implication": "Provide security-relevant chronological record",
+    "mitigation": "Provide event logs data to be collected"
+  },
+  "Ensure 'Enable Password' is set and 'Password Recovery' is disabled": {
+    "implication": "The default device configuration does not require any strong user authentication enabling unfettered access to an attacker that can reach the device. A user can enter the default password and just press the Enter key at the Password prompt to login to the device. Setting the enable password causes the device to enforce use of a strong password to access privileged EXEC mode. Using default or well-known passwords makes it easier for an attacker to gain entry to a device.\nDisabling the password recovery is an additional physical control. It will prevent an attacker that will have circumvented all the physical safeguards and being in contact with the security appliance to change the existing login password, enable password and local user password and then hack the system.",
+    "mitigation": "The enable_password parameter should be the plain-text password used to log into the enable mode If the privilege level is not configured, the default one is 15\nRun the following to disable the password recovery: \nhostname (config)# no service password-recovery"
+  },
+  "Ensure 'Domain Name' and ‘Host Name’ is set": {
+    "implication": "The domain name is important during the deployment of RSA keys and certificates used by the appliance.\nThe device hostname plays an important role in asset inventory and identification as a security requirement, but also in the public keys and certificate deployments as well as when correlating logs from different systems during an incident handling.",
+    "mitigation": "Step 1: Acquire the enterprise domain name (enterprise_domain) and naming convention to build the name_of_device\nStep 2: Run the following to configure the domain name \nhostname(config)#domain-name <enterprise_domain>\nStep 3: Run the following to configure the device hostname\nhostname(config)#hostname <name_of_device>"
+  },
+  "Ensure known default accounts do not exist": {
+    "implication": "In order to attempt access to known devices' platforms, attackers use the available database of the known default accounts for each platform or Operating System. The known default accounts are often (without limiting to) the following: 'root', 'asa', 'admin', 'cisco', 'pix'. When the attacker has discovered that a default account is enabled on a system, the work of attempting to access to the device will be half done given that the remaining part will be on guessing the password and risks for devices to be intruded are very high. It is a best practice to use Enterprise customized administrative accounts.",
+    "mitigation": "Step 1: Acquire the Enterprise customized administrative account <customized_admin_account> and password <admin_password>\nStep 2: Run the following to create the customized administrative account as well as the required privilege level <privilege_level> \nhostname(config)#username <customized_admin_account> password <admin_password> privilege <privilege_level>\nStep 3: Run the following to delete the known default accounts identified during the audit\nhostname(config)# no username <known_default_account>"
+  },
+  "Ensure 'TACACS+/RADIUS' is configured correctly": {
+    "implication": "Authentication, authorization and accounting (AAA) scheme provide an authoritative source for managing and monitoring access for devices. Many protocols are supported for the communication between the systems and the AAA servers: http-form, kerberos, ldap, nt, radius, sdi, tacacs+.",
+    "mitigation": "Step 1: Acquire the enterprise standard protocol (protocol_name) for authentication (TACACS+ or RADIUS)\nStep 2: Run the following to configure the AAA server-group for the required protocol\nhostname(config)#aaa-server <server-group_name> protocol <protocol_name>\nStep 3: Run the following to configure the AAA server:\nhostname(config)#aaa-server <server-group_name> (<interface_name>) host <aaa-server_ip> <shared_key>\nserver-group_name: the above server-group configured\ninterface_name: the network interface from which the AAA server will be accessed\naaa-server_ip: the IP address of the AAA server \nshared_key: the TACACS+ or RADIUS shared key"
+  },
+  "Ensure 'SSH source restriction' is set to an authorized IP address": {
+    "implication": "One key element of securing the network is the security of management access to the infrastructure devices. It is critical to establish the appropriate controls in order to prevent unauthorized access to infrastructure devices. One of them is permitting only authorized originators to attempt device management access. This ensures that the processing of access requests is restricted to an authorized source IP address, thus reducing the risk of unauthorized access and the exposure to other attacks, such as brute force, dictionary, or DoS attacks.",
+    "mitigation": "Run the following to enable SSH access source restriction \nhostname(config)#ssh <source_ip> <source_netmask> <interface_name>"
+  },
+  "Ensure 'RSA key pair' is greater than or equal to 2048 bits": {
+    "implication": "Secure Shell (SSH) is a secure remote-login protocol. The ASA allows SSH connections to the ASA for management purposes and supports the SSH DES and 3DES ciphers. SSH uses a key-exchange method based on Rivest-Shamir-Adleman (RSA) public-key. Since RSA 1024-bit keys are likely to become crackable, it is recommended to have RSA keys of at least 2048 bits.",
+    "mitigation": "Step 1: Acquire the enterprise standard RSA key size greater or equal than 2048 bits\nStep 2: If the audit procedure revealed existing non-compliant key pairs, run the following to remove them: \nhostname(config)#crypto key zeroize rsa\nStep 3: Run the following to generate compliant RSA key pair:\n hostname(config)# crypto key generate rsa modulus <enterprise_RSA_key_size>\nStep 4: Run the following to save the RSA keys to persistent Flash memory \nhostname(config)#write memory"
+  },
+  "Ensure 'Telnet' is disabled": {
+    "implication": "Telnet is an unsecure protocol as username and password are conveyed in clear text during the administrator authentication and can be retrieved through network sniffing.",
+    "mitigation": "Step 1: Run the following to remove the telnet access\nhostname(config)#no telnet 0.0.0.0 0.0.0.0 <interface_name>\nStep 2: Run the following to remove the configured telnet timeout \nhostname(config)#no telnet timeout <configured_timeout>"
+  },
+  "Ensure DNS services are configured correctly": {
+    "implication": "The security appliance may perform DNS queries in order to achieve URL filtering or threat protection against Botnet traffic.",
+    "mitigation": "Step 1: Run the following to enable the DNS lookup \nhostname(config)# dns domain-lookup <interface_name>\n<interface_name> is the name of the interface connected to the DNS server\nStep 2: Configure the group of DNS servers \nhostname(config)# dns server-group DefaultDNS\nStep 3: Acquire the enterprise authorized DNS servers' IP addresses <dns_ip_address> and for each of them, run the following command to configure the DNS server in the DNS server group\nhostname(config-dns-server-group)#name-server <dns_ip_address>"
+  },
+  "Ensure intrusion prevention is enabled for untrusted interfaces": {
+    "implication": "The intrusion prevention is an additional feature for which the security appliance audits the traffic in order to identify vulnerability exploits. This is achieved because specific signatures are matched in the traffic. There are two types of signatures, attack signature for which the traffic is intended to harm the internal resource and informational signature for which the traffic is to gather information on internal resources through port scans, ping sweeps, DNS zone transfers and many others. The possible actions to prevent the intrusion are to drop the traffic, to reset the connection or to send an alarm.",
+    "mitigation": "Step 1: Acquire the Enterprise standard action <prevention_action> to be performed when an attack signature is matched. It is to be chosen between 'drop' (The packet is dropped) and 'reset' (The packet is dropped and the connection closed)\nStep 2: Run the following to enable the audit policy against the attack signatures with the Enterprise standard action \nhostname(config)# ip audit name <audit_name> attack action alarm <prevention_action>\nStep 3: Identify the untrusted interface <interface_name>\nStep 4: Run the following to enable the intrusion prevention on the untrusted interface\nhostname(config)# ip audit interface <interface_name> <audit_name>"
+  },
+  "Ensure 'threat-detection statistics' is set to 'tcp-intercept'": {
+    "implication": "The TCP Intercept function helps protecting the network and particularly servers against DOS attacks. When the maximum count of allowed connections is reached, through the TCP Intercept function, the firewall will no longer allow connection to the impacted server and will act as a proxy to the attack server until a valid traffic is received.\nEnabling statistics can help to prevent the attacks at the earliest stage possible upstream.",
+    "mitigation": "Run the following to enable threat detection statistics for TCP Intercept \nhostname(config)# threat-detection statistics tcp-intercept"
+  },
+  "Ensure explicit deny in access lists is configured correctly": {
+    "implication": "Configuring an explicit deny entry, with log option, at the end of access control lists enables monitoring and troubleshooting traffic flows that have been denied. Logging these events can provide an effective record to troubleshoot issues and attacks.",
+    "mitigation": "Step 1: Acquire the name <access-list_name> of the access-list that is not compliant from the audit procedure\nStep 2: Run the following to configure the explicit deny. \nhostname(config)#<access-list_name> extended deny ip any any log\nThe statement will be placed at the end of the access-list"
+  }
+}
