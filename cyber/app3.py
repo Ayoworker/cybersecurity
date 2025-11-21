@@ -40,9 +40,12 @@ st.set_page_config(
 # Database Management
 DB_PATH = "knowledge_base.db"
 
-
 def init_database():
-    """Initialize SQLite database for knowledge base"""
+    """Initialize SQLite database for knowledge base - runs only once per session"""
+    # Check if already initialized in this session
+    if st.session_state.get('db_initialized'):
+        return
+        
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -68,30 +71,38 @@ def init_database():
     count = cursor.fetchone()[0]
 
     if count == 0:
-        # Use cached JSON loading
-        kb_data = load_knowledge_base_json('knowledge_base.json')
+        json_path = Path('knowledge_base.json')
 
-        if kb_data:
-            imported = 0
-            for issue_name, details in kb_data.items():
-                if isinstance(details, dict):
-                    implication = details.get('implication', '')
-                    mitigation = details.get('mitigation', '')
-                    if implication and mitigation:
-                        cursor.execute('''
-                            INSERT OR IGNORE INTO knowledge_base (issue_name, implication, mitigation)
-                            VALUES (?, ?, ?)
-                        ''', (issue_name, implication, mitigation))
-                        imported += 1
+        if json_path.exists():
+            try:
+                # Direct JSON loading without caching
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    kb_data = json.load(f)
 
-            conn.commit()
-            st.success(f"✅ Imported {imported} entries from knowledge_base.json")
+                imported = 0
+                for issue_name, details in kb_data.items():
+                    if isinstance(details, dict):
+                        implication = details.get('implication', '')
+                        mitigation = details.get('mitigation', '')
+                        if implication and mitigation:
+                            cursor.execute('''
+                                INSERT OR IGNORE INTO knowledge_base (issue_name, implication, mitigation)
+                                VALUES (?, ?, ?)
+                            ''', (issue_name, implication, mitigation))
+                            imported += 1
+
+                conn.commit()
+                st.success(f"✅ Imported {imported} entries from knowledge_base.json")
+
+            except Exception as e:
+                st.error(f"❌ Error loading knowledge_base.json: {e}")
         else:
-            st.info("ℹ️ No knowledge base data to import")
+            st.warning(f"⚠️ knowledge_base.json not found at {json_path.absolute()}")
 
     conn.close()
+    st.session_state.db_initialized = True
 
-@st.cache_data(ttl=3600)  # Cache for 1 hour, refresh if needed
+@st.cache_data(ttl=3600)  # Cache for 1 hour
 def load_kb_from_db():
     """Load all KB entries from database with caching"""
     conn = sqlite3.connect(DB_PATH)
@@ -1017,8 +1028,13 @@ def generate_report(data: dict, uploaded_images: dict, arch_image: bytes = None,
 
 def main():
     """Main Streamlit application"""
-    # Initialize database on first run
+    # Initialize session state for database
+    if 'db_initialized' not in st.session_state:
+        st.session_state.db_initialized = False
+        
+    # Initialize database (will only run once per session)
     init_database()
+
 
     st.title("🔒 Cybersecurity Report Generator")
     st.markdown("Generate professional cybersecurity assessment reports - No technical knowledge required!")
@@ -1626,4 +1642,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
