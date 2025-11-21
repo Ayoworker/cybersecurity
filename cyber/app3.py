@@ -146,17 +146,21 @@ def add_to_kb_db(issue_name, implication, mitigation):
 
 
 def increment_kb_usage(issue_name):
-    """Increment usage counter for KB entry"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        UPDATE knowledge_base 
-        SET usage_count = usage_count + 1 
-        WHERE issue_name = ?
-    ''', (issue_name,))
-    conn.commit()
-    conn.close()
-
+    """Increment usage counter for KB entry with session state tracking"""
+    # Use session state to track which issues we've already incremented in this session
+    session_key = f'kb_used_{issue_name}'
+    
+    if not st.session_state.get(session_key):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE knowledge_base 
+            SET usage_count = usage_count + 1 
+            WHERE issue_name = ?
+        ''', (issue_name,))
+        conn.commit()
+        conn.close()
+        st.session_state[session_key] = True
 
 def search_kb_db(query, top_n=5):
     """Search KB in database with similarity matching"""
@@ -1642,5 +1646,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
